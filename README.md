@@ -6,7 +6,7 @@ FLAWD is a formal language that can characterise process-data quality problems, 
 ## Technologies
 * Python - version 3.11.9
 * scipy - version 1.10.1
-* PM4Py - version 2.7.9.1D
+* PM4Py - version 2.7.9.1
 * sklearn - version 1.2.2
 * re, pandas, numpy, random, datetime
 * Declare4Py - local folder (ref= https://github.com/ivanDonadello/Declare4Py)
