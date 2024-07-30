@@ -16,7 +16,7 @@ qwerty= np.array([['q','w','e','r','t','y','u','i','o','p'],
          ['a','s','d','f','g','h','j','k','l',';'], 
          ['z','x','c','v','b','n','m',',','.','/']])
 
-def distortion(oldstr, method):
+def distortionType(oldstr, method):
     if method == "Skip":
         str_len = len(oldstr)
         loc = random.choice(range(0,str_len))
@@ -69,9 +69,9 @@ def distortion(oldstr, method):
     return newstr
 
 
-def DistortedLabel(data, who, distortion, DecConstraint:str, 
+def DistortedLabel(data, who:str=None, distortion:str=None, DecConstraint:str=None,  prob:float = 1.0,
                     tstart: datetime= None, tend: datetime= None, ratio:float= None, 
-                    case_id_key:str = 'Case', timestamp_key:str = "Timestamp"):
+                    case_id_key:str = 'Case', timestamp_key:str = "Timestamp",  activity_key:str = "Activity"):
     
     step = 1
     if (tstart == None) & (tend == None):
@@ -103,17 +103,17 @@ def DistortedLabel(data, who, distortion, DecConstraint:str,
     result_filtered = result.loc[result[case_id_key].isin(case_sampled)].reset_index(drop=True)
     result_nonfiltered = result.loc[~result[case_id_key].isin(case_sampled)]
 
-    condition_root = None
-    if ":" in who:
-        attr_root = (re.split(r"\:", who)[0])[1:]
-        condition_root = (re.split(r"\:", who)[1])[:-1]
-    
-    
+    condition_root = ""
+    if who != None:
+        if ":" in who:
+            attr_root = (re.split(r"\:", who)[0])[1:]
+            condition_root = (re.split(r"\:", who)[1])[:-1]
+        else:
+            condition_root = "no random"
+        
     condition = None
     attr = (re.split(r"\:", distortion)[0])[1:]
     condition = (re.split(r"\:(?!\')", distortion)[1])[:-1]
-    
-    
     if "random(" in distortion:
         pattern = []
         if "Skip" in condition:
@@ -126,15 +126,10 @@ def DistortedLabel(data, who, distortion, DecConstraint:str,
             pattern = pattern + ["UpLow"]
         if "Proximity" in condition:
             pattern = pattern + ["Proximity"]
-
         condition = pattern
     else:
-        if type(eval(condition)) == str:
-            condition = dict(eval(condition))
-        else:
-            condition = dict(eval(condition))
+        condition = dict(eval(condition))
 
-    
     
     if 'random{' in condition_root:
         cut1 = re.split(r"\{|\}", condition_root)[1]
@@ -147,7 +142,7 @@ def DistortedLabel(data, who, distortion, DecConstraint:str,
         df_resource[attr_root] = result_filtered[attr_root].unique().tolist()
         df_resource['rate'] = rate
         
-        result_filtered = result_filtered.merge(df_resource, distortion='left', on=attr_root)
+        result_filtered = result_filtered.merge(df_resource, how='left', on=attr_root)
         PF = np.random.binomial(np.repeat(1, len(result_filtered)), result_filtered["rate"])
         print("Total number of events with resource's mistake: ", sum(PF) )
         result_filtered['mistake_true/false'] = PF
@@ -159,7 +154,7 @@ def DistortedLabel(data, who, distortion, DecConstraint:str,
             list_label = []
             for str_act in result_selected[attr]:
                 p = random.choice(pattern)
-                polluted_act = distortion(str_act, method = p)
+                polluted_act = distortionType(str_act, method = p)
                 list_polluted_act = list_polluted_act + [polluted_act]
                 label = str("distorted label(") + str(p) + ")"
                 list_label = list_label + [label]
@@ -172,9 +167,8 @@ def DistortedLabel(data, who, distortion, DecConstraint:str,
             for key in condition.keys():
                 result_filtered.loc[(result_filtered['mistake_true/false']==1 ) & (result_filtered[attr] == key), 'label'] = str("distorted label(") + str(key) + ")"
                 result_filtered.loc[(result_filtered['mistake_true/false']==1 ) & (result_filtered[attr] == key), attr] = condition[key]
-        
-    else:
-    
+         
+    elif condition_root == "no random":   
         if type(eval(condition_root)) == str:
             condition_root = [eval(condition_root)]
         else:
@@ -187,7 +181,7 @@ def DistortedLabel(data, who, distortion, DecConstraint:str,
             list_label = []
             for str_act in result_selected[attr]:
                 p = random.choice(pattern)
-                polluted_act = distortion(str_act, method = p)
+                polluted_act = distortionType(str_act, method = p)
                 list_polluted_act = list_polluted_act + [polluted_act]
                 label = str("distorted label(") + str(p) + ")"
                 list_label = list_label + [label]
@@ -202,7 +196,21 @@ def DistortedLabel(data, who, distortion, DecConstraint:str,
                 result_filtered.loc[(result_filtered[attr_root].isin(condition_root)) & (result_filtered[attr] == key), 'label'] = str("distorted label(") + str(key) + ")"
                 result_filtered.loc[(result_filtered[attr_root].isin(condition_root)) & (result_filtered[attr] == key), attr] = condition[key]
 
+    else: # for who == None
+        idx = pd.Index(np.random.choice(result_filtered.index, round(len(result_filtered)*prob)))
+        result_selected = result_filtered.iloc[idx]
+        result_others = result_filtered.iloc[~idx]
+        for key in condition.keys():
+            org = result_selected.loc[result_selected[attr] == key, activity_key]
+            org = org.apply(lambda x:  str("distorted label(") + str(key) + ":" + str(condition[key]) + ")")
+            result_selected.loc[result_selected[attr] == key, 'label'] = org
+            result_selected.loc[result_selected[attr] == key, attr] = condition[key]
         
+        result_filtered = pd.concat([result_selected, result_others]).reset_index(drop=True)
+
+
+
+
     result_filtered = result_filtered[list(result_nonfiltered.columns.values)]
     result = pd.concat([result_filtered, result_nonfiltered]).reset_index(drop=True)
         

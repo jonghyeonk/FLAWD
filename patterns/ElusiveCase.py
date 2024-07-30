@@ -10,7 +10,7 @@ from tqdm import tqdm
 from sklearn.cluster import KMeans
 
 def ElusiveCase(data, method:str, case_id_key:str, activity_key:str, timestamp_key:str, 
-                DecConstraint:str, tstart:datetime, tend:datetime, ratio:float, gnum:int = 4, n_clusters:int = None):
+                DecConstraint:str, tstart:datetime, tend:datetime, ratio:float, gnum:int = 4):
     
     result = data.copy()
     
@@ -39,9 +39,9 @@ def ElusiveCase(data, method:str, case_id_key:str, activity_key:str, timestamp_k
         print("Filtering step", step, ". The number of cases to be filtered by defined random portion: ", len(case_sampled))
 
     
-    if n_clusters != None:
-        if len(case_sampled) <= n_clusters:
-            raise ValueError('Error: n_clusters=100. should be less than: ', len(case_sampled))
+    if method == 'KMeans':
+        if len(case_sampled) <= gnum:
+            raise ValueError('Error: "gnum" should be less than: ', len(case_sampled))
     
     result_selected = result.loc[result[case_id_key].isin(case_sampled)].reset_index(drop= True)
     result_others = result.loc[~result[case_id_key].isin(case_sampled)].reset_index(drop= True)
@@ -93,7 +93,7 @@ def ElusiveCase(data, method:str, case_id_key:str, activity_key:str, timestamp_k
 
         dt_transformed = pd.get_dummies(dt_transformed)
         
-        km = KMeans(n_clusters=n_clusters)
+        km = KMeans(n_clusters=gnum)
         km.fit(dt_transformed)
         dt_transformed['draft_ID'] = km.labels_
         dt_transformed['draft_ID'] = dt_transformed['draft_ID'].apply(lambda x: "draft_" + str(x))

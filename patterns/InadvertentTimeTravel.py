@@ -127,14 +127,3 @@ def InadvertentTimeTravel(data, target, tunit, DecConstraint:str, prob_para:floa
     return result
 
 
-# Distorted Label
-df_polluted = InadvertentTimeTravel(extracted_data, 
-                          target = "[Activity:('Perform checks', 'Check for completeness')]",
-                          tunit = "year",    #day, month, year
-                          prob_func = "poisson",  # poisson, exponential
-                          tstart = "2023-09-26 09:00:00.000",
-                          tend = "2024-02-26 09:00:00.000",
-                          declare = "Chain Response[Make decision, Notify accept] |A.Resource is Manager-000001 |T.Resource is Manager-000003 |", 
-                          ratio = 1.0,
-                          case_id_key = "Case",
-                          timestamp_key = "Timestamp")
