@@ -12,5 +12,5 @@ FLAWD is a formal language that can characterise process-data quality problems, 
 * Declare4Py - local folder (ref= https://github.com/ivanDonadello/Declare4Py)
 
 ## Implementation
-See the Jyupyter Notebook "Implementation.ipynb"
+See the Jupyter Notebook file "Implementation.ipynb"
 
