@@ -31,8 +31,9 @@ def tranformer_declare(line):
 
 def filter_declare(data, line: str, case_id_key: str):
     
+    data['case:concept:name'] =  data[case_id_key]
     event_log = D4PyEventLog()
-    event_log.log = pm4py.convert_to_event_log(data, case_id_key= case_id_key)
+    event_log.log = pm4py.convert_to_event_log(data)
 
     event_log.log_length = len(event_log.log)
     event_log.timestamp_key = "Timestamp"

@@ -5,6 +5,9 @@ from utils.filtering import filter_time, filter_declare
 import random
 import string
 import tracemalloc
+import warnings
+warnings.filterwarnings(action='ignore')
+
 
 def PollutedLabel(data: pd.DataFrame, target: str, action: str, DecConstraint: str = None, 
                   tstart: datetime = None, tend: datetime = None, ratio: float = None,
@@ -50,14 +53,16 @@ def PollutedLabel(data: pd.DataFrame, target: str, action: str, DecConstraint: s
     result = data.copy()
     result['label'] = ""
     
+
     condition = None
     if ':' in target:
-        attr_polluted, condition = target[1:-1].split(':')
-        condition = eval(condition) if '[' in condition else [condition]
-    elif '[' in target:
-        attr_polluted = target.split('(', 1)[1].split(')', 1)[0]
-    else:
-        attr_polluted = target
+        attr_polluted = (re.split(r"\:", target)[0])[1:]
+        condition = (re.split(r"\:", target)[1])[:-1]
+        if type(eval(condition)) == str:
+            condition = [eval(condition)]
+        else:
+            condition = list(eval(condition))
+
 
     for c_id in case_sampled:
         case_data = result[result[case_id_key] == c_id]
@@ -65,7 +70,6 @@ def PollutedLabel(data: pd.DataFrame, target: str, action: str, DecConstraint: s
             loc = case_data.index
         else:
             loc = case_data[case_data[attr_polluted].isin(condition)].index
-
         if loc.empty:
           continue
 
@@ -99,8 +103,5 @@ def PollutedLabel(data: pd.DataFrame, target: str, action: str, DecConstraint: s
             org = result.loc[index, attr_polluted]
             result.loc[index, attr_polluted] = row_str
             result.loc[index, 'label'] = f"polluted Label({attr_polluted}:'{org}')"
-    snapshot = tracemalloc.take_snapshot()
-    top_stats = snapshot.statistics('lineno')
 
-    tracemalloc.stop()
-    return result, top_stats
+    return result
